@@ -156,7 +156,7 @@
 }
 .lp-hero-cta .btn { height: 44px; padding: 0 22px; font-size: 14px; }
 .lp-hero-meta {
-  display: flex; gap: 24px; align-items: center;
+  display: flex; gap: 24px; align-items: center; flex-wrap: wrap; row-gap: 8px;
   margin-top: 32px;
   font-family: var(--font-mono); font-size: 11px;
   color: var(--ink-4);
@@ -869,6 +869,7 @@
   .lp-hero { padding: 40px 0 24px; }
   .lp-nav-links { display: none; }
   .lp-pillars { grid-template-columns: 1fr; }
+  .lp-beh-streak-row { grid-template-columns: repeat(14, 1fr); }
   .lp-foot-grid { grid-template-columns: 1fr; }
   .lp-foot-bottom { flex-direction: column; gap: 12px; align-items: flex-start; }
   .lp-platform-vis .lp-phone { width: 180px; right: 0; }
