@@ -1,0 +1,4 @@
+/login https://br-budget-br-cto.vercel.app/login 302
+/register https://br-budget-br-cto.vercel.app/register 302
+/app https://br-budget-br-cto.vercel.app/app 302
+/app/* https://br-budget-br-cto.vercel.app/app/:splat 302
