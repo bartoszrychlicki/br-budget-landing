@@ -1,899 +1,392 @@
-<!doctype html>
-<html lang="pl" data-theme="light">
+<!DOCTYPE html>
+<html lang="pl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BR Budget — oszczędnościomierz, codzienny rytuał, agent AI</title>
-  <meta name="description" content="Autorski system no-spend. Oszczędnościomierz w zł/h, ranny rytuał „Zamknij zysk", agent AI dodaje wydatki przez Skill / API. Import-first. Darmowy.">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="landing-styles.css">
-  <style>
-    .lp-burn { width:100%; height:120px; margin-top:18px; color: var(--ink); display:block; }
-    .lp-burn-line { stroke-dasharray: 600; stroke-dashoffset: 600; animation: lpBurnDraw 2.4s 0.4s ease forwards; }
-    .lp-burn-dot { opacity: 0; animation: lpBurnDot 0.4s 2.6s ease forwards; }
-    @keyframes lpBurnDraw { to { stroke-dashoffset: 0; } }
-    @keyframes lpBurnDot { to { opacity: 1; } }
-    .btn.sm { font-size: 12px; padding: 6px 10px; }
-
-    /* Local dark-mode override for the platforms preview only */
-    #lp-platform-canvas { position: relative; transition: background-color .4s ease, color .4s ease; border-radius: 14px; padding: 28px 24px 22px; margin: -28px -24px -22px; }
-    #lp-platform-canvas[data-mock-theme="light"] {
-      --paper: #faf9f7; --paper-2: #f3f1ec; --paper-3: #ecebe5;
-      --ink: #0e0e0c; --ink-2: #2a2a26; --ink-3: #56544c; --ink-4: #8a8780; --ink-5: #b6b3aa;
-      --line: rgba(14,14,12,0.08); --line-2: rgba(14,14,12,0.14); --hairline: rgba(14,14,12,0.06);
-      --tint: rgba(14,14,12,0.04); --tint-2: rgba(14,14,12,0.07);
-      background: #faf9f7; color: #0e0e0c;
-    }
-    #lp-platform-canvas[data-mock-theme="light"] .lp-laptop,
-    #lp-platform-canvas[data-mock-theme="light"] .lp-laptop-body,
-    #lp-platform-canvas[data-mock-theme="light"] .lp-phone-screen { background: #faf9f7; color: #0e0e0c; border-color: rgba(14,14,12,0.14); }
-    #lp-platform-canvas[data-mock-theme="light"] .lp-laptop-bar { background: #ecebe5; border-color: rgba(14,14,12,0.08); }
-    .lp-mock-toggle { position: absolute; top: 14px; right: 14px; display: inline-flex; gap: 0; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; z-index: 3; }
-    .lp-mock-toggle button { all: unset; cursor: pointer; padding: 5px 12px; border-radius: 999px; color: var(--ink-4); transition: color .2s ease, background-color .2s ease; }
-    .lp-mock-toggle button.is-on { background: var(--ink); color: var(--paper); }
-    #lp-platform-canvas[data-mock-theme="dark"] {
-      --paper: #0c0c0a; --paper-2: #141412; --paper-3: #1c1c19;
-      --ink: #f5f3ee; --ink-2: #e5e3dc; --ink-3: #b3b0a6; --ink-4: #807d75; --ink-5: #56544d;
-      --line: rgba(245,243,238,0.10); --line-2: rgba(245,243,238,0.18); --hairline: rgba(245,243,238,0.06);
-      --tint: rgba(245,243,238,0.04); --tint-2: rgba(245,243,238,0.08);
-      background: #0c0c0a; color: #f5f3ee;
-    }
-    #lp-platform-canvas[data-mock-theme="dark"] .lp-laptop,
-    #lp-platform-canvas[data-mock-theme="dark"] .lp-laptop-body,
-    #lp-platform-canvas[data-mock-theme="dark"] .lp-phone-screen { background: var(--paper-2); color: var(--ink); border-color: var(--line); }
-    #lp-platform-canvas[data-mock-theme="dark"] .lp-laptop-bar { background: var(--paper-3); border-color: var(--line); }
-    #lp-platform-canvas[data-mock-theme="dark"] .bar { background: var(--tint-2); }
-
-    /* Tweaks panel */
-    .tw-panel { position: fixed; right: 20px; bottom: 20px; width: 308px; background: var(--paper); color: var(--ink); border: 1px solid var(--line-2); border-radius: 14px; box-shadow: 0 30px 60px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.06); padding: 14px 14px 12px; z-index: 9999; font-family: var(--font-sans); display: none; max-height: calc(100vh - 40px); overflow-y: auto; }
-    .tw-panel.is-open { display: block; }
-    .tw-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-    .tw-title { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); }
-    .tw-close { all: unset; cursor: pointer; padding: 4px 8px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-4); }
-    .tw-close:hover { background: var(--tint); color: var(--ink); }
-    .tw-sec { margin-top: 10px; }
-    .tw-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-4); margin-bottom: 6px; }
-    .tw-opts { display: grid; gap: 6px; }
-    .tw-opt { all: unset; cursor: pointer; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12.5px; line-height: 1.35; transition: border-color .15s, background-color .15s; }
-    .tw-opt:hover { background: var(--tint); }
-    .tw-opt.is-on { border-color: var(--ink); background: var(--tint-2); }
-    .tw-opt b { display: block; font-family: var(--font-serif); font-size: 13.5px; font-weight: 400; margin-bottom: 1px; }
-    .tw-opt small { color: var(--ink-4); font-family: var(--font-mono); font-size: 10.5px; }
-    .tw-ta { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-family: var(--font-serif); font-size: 13.5px; line-height: 1.35; resize: vertical; min-height: 64px; background: var(--paper); color: var(--ink); }
-    .tw-ta:focus { outline: none; border-color: var(--ink); }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BR Budget — każda złotówka ma swoją drogę</title>
+  <meta name="description" content="BR Budget to prywatna księga przepływów: konta, kategorie, import wyciągów bankowych (CSV/MT940), klasyfikacja AI i API dla agentów. Zobacz, dokąd naprawdę płyną pieniądze." />
+  <meta property="og:title" content="BR Budget — każda złotówka ma swoją drogę" />
+  <meta property="og:description" content="Prywatna księga przepływów: konta, kategorie, import wyciągów, klasyfikacja AI i API dla agentów." />
+  <meta property="og:url" content="https://budget.bartoszrychlicki.com" />
+  <meta property="og:type" content="website" />
+  <link rel="canonical" href="https://budget.bartoszrychlicki.com/" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23faf9f7'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='38' font-style='italic' text-anchor='middle' fill='%230e0e0c'%3EB.%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..700;1,8..60,300..700&family=Geist:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/landing/styles.css" />
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js" } }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js" defer></script>
+  <script type="module" src="/landing/script.js"></script>
 </head>
-<body class="lp">
-  <template id="__bundler_thumbnail" data-bg-color="#faf9f7">
-    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
-      <rect width="1200" height="800" fill="#faf9f7"/>
-      <g transform="translate(600 400)" font-family="Georgia, 'Source Serif 4', serif" fill="#0e0e0c">
-        <text x="0" y="-20" text-anchor="middle" font-size="220" font-style="italic" letter-spacing="-8">br</text>
-        <text x="0" y="80" text-anchor="middle" font-size="42" font-family="ui-monospace, 'Geist Mono', monospace" letter-spacing="6" fill="#56544c">BR · BUDGET</text>
-      </g>
-    </svg>
-  </template>
-  <!-- ─── NAV ─── -->
-  <header class="lp-nav">
-    <div class="lp-wrap lp-nav-inner">
-      <a class="lp-brand" href="#top">
-        <div class="lp-mark">br</div>
-        <div class="lp-brandtxt">BR Budget<sup>v0.9</sup></div>
-      </a>
-      <nav class="lp-nav-links">
-        <a href="#system">System</a>
-        <a href="#ai">AI &amp; Agenci</a>
-        <a href="#import">Import</a>
-        <a href="#cennik">Cennik</a>
-        <a href="#changelog">Changelog</a>
-      </nav>
-      <div class="lp-nav-spacer"></div>
-      <button class="lp-theme-btn" id="lp-theme" aria-label="Przełącz motyw" title="Przełącz motyw">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 9.5A4 4 0 1 1 6.5 4.5a5 5 0 0 0 5 5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-      </button>
-      <a class="btn ghost sm" href="/login" style="text-decoration:none">Zaloguj</a>
-      <a class="btn sm" href="/register" style="text-decoration:none">Załóż konto</a>
-    </div>
+<body>
+  <a class="skip-link" href="#tresc">Przejdź do treści</a>
+
+  <header class="site-header">
+    <a class="wordmark" href="#góra">BR—BUDGET<span class="wordmark-dot">.</span></a>
+    <nav class="header-nav" aria-label="Nawigacja">
+      <a href="/login">Zaloguj się</a>
+      <a class="header-cta" href="/register">Załóż konto</a>
+    </nav>
   </header>
 
-  <main id="top">
-    <!-- ─── HERO ─── -->
-    <section class="lp-hero">
-      <div class="lp-wrap">
-        <span class="lp-hero-eyebrow" id="lp-hero-eyebrow"><span class="pulse"></span><span id="lp-hero-eyebrow-text">AI-first · Darmowy · Gamifikuje oszczędzanie</span></span>
+  <nav class="rail" aria-label="Rozdziały">
+    <a href="#rozdzial-01" data-rail="01"><span>01</span></a>
+    <a href="#rozdzial-02" data-rail="02"><span>02</span></a>
+    <a href="#rozdzial-03" data-rail="03"><span>03</span></a>
+    <a href="#rozdzial-04" data-rail="04"><span>04</span></a>
+    <a href="#rozdzial-05" data-rail="05"><span>05</span></a>
+    <a href="#rozdzial-06" data-rail="06"><span>06</span></a>
+  </nav>
 
-        <h1 class="lp-hero-h" id="lp-hero-h">
-          Pierwszy budżet <em>AI-first</em>.<br>
-          Gamifikuje <span class="underline">oszczędzanie</span>.<br>
-          <em>Darmowy.</em> Póki co.
-        </h1>
+  <main id="tresc">
 
-        <div class="lp-hero-grid">
-          <div>
-            <p class="lp-hero-sub">
-              Oszczędnościomierz pokazuje, ile <i>zł na godzinę</i> ma do dyspozycji Twoja pula zmienna. Każdego ranka system wylicza wczorajszy zapas i prosi o jedno: <b>przelej teraz</b>. Bez integracji z bankiem, bez reklam, bez gamifikacji bez pokrycia.
-            </p>
-            <div class="lp-hero-cta">
-              <a class="btn" href="/register" style="text-decoration:none">Załóż darmowe konto</a>
-              <a class="btn ghost" href="#ai" style="text-decoration:none">Zobacz integrację z agentem →</a>
+    <!-- ════════ HERO ════════ -->
+    <section class="hero" id="góra">
+      <canvas class="hero-canvas" id="flow-canvas" aria-hidden="true"></canvas>
+      <div class="hero-veil" aria-hidden="true"></div>
+
+      <div class="hero-inner">
+        <p class="eyebrow hero-eyebrow">BR Budget · prywatna księga przepływów</p>
+        <h1 class="hero-title">Każda złotówka<br />ma swoją <em>drogę.</em></h1>
+        <p class="hero-lead">
+          Konta, kategorie i wyciągi bankowe w jednej księdze,
+          która pokazuje, dokąd naprawdę płyną pieniądze.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-ink" href="/register">Załóż konto</a>
+          <a class="btn btn-ghost" href="/login">Zaloguj się</a>
+        </div>
+        <p class="hero-micro">Import CSV i MT940 · klasyfikacja AI · API dla agentów</p>
+      </div>
+
+      <div class="hero-strip" aria-label="Przykładowy miesiąc — dane demo">
+        <div class="strip-stat">
+          <span class="strip-label">Przychód</span>
+          <span class="strip-num num-pos" data-count="8400" data-prefix="+">+0,00 zł</span>
+        </div>
+        <div class="strip-stat">
+          <span class="strip-label">Stałe</span>
+          <span class="strip-num" data-count="3980" data-prefix="−">−0,00 zł</span>
+        </div>
+        <div class="strip-stat">
+          <span class="strip-label">Oszczędności</span>
+          <span class="strip-num num-pos" data-count="1200" data-prefix="+">+0,00 zł</span>
+        </div>
+        <span class="strip-note">przykładowy miesiąc</span>
+      </div>
+
+      <p class="scroll-cue" aria-hidden="true">↓ przewiń</p>
+    </section>
+
+    <!-- ════════ 01 · PROBLEM ════════ -->
+    <section class="chapter problem" id="rozdzial-01" data-chapter="01">
+      <header class="chapter-head">
+        <span class="chapter-no">01</span>
+        <span class="chapter-name">Saldo</span>
+      </header>
+      <h2 class="chapter-title split-lines">
+        Wypłata przychodzi pierwszego. Potem miesiąc <em>dzieje się sam.</em>
+      </h2>
+      <p class="chapter-lead">
+        Subskrypcje, czynsz, drobne z karty. Pod koniec zostaje saldo,
+        którego nikt w domu nie umie wyjaśnić.
+      </p>
+      <figure class="mystery">
+        <div class="mystery-amount">
+          <span class="mystery-num">−412,38 zł</span>
+          <svg class="mystery-scribble" viewBox="0 0 420 26" aria-hidden="true" preserveAspectRatio="none">
+            <path d="M4 14 C 60 4, 110 24, 170 13 S 290 6, 340 16 S 400 12, 416 10" fill="none" />
+          </svg>
+        </div>
+        <figcaption class="mystery-caption">kategoria: nikt nie wie</figcaption>
+      </figure>
+    </section>
+
+    <!-- ════════ 02 · ZASADA ════════ -->
+    <section class="chapter zasada" id="rozdzial-02" data-chapter="02">
+      <header class="chapter-head">
+        <span class="chapter-no">02</span>
+        <span class="chapter-name">Zasada</span>
+      </header>
+      <h2 class="chapter-title split-lines">Jedna zasada: wydawaj mniej, <em>niż zarabiasz.</em></h2>
+      <p class="chapter-lead">
+        Cała reszta to mechanika. BR Budget pilnuje tej nierówności trzema
+        narzędziami — rytuałem odkładania, chłodzeniem impulsów i osią czasu,
+        która mówi, czy starczy.
+      </p>
+
+      <p class="ineq" aria-label="wydatki mniejsze niż przychód">
+        <span class="ineq-side ineq-l">wydatki</span>
+        <span class="ineq-sign">&lt;</span>
+        <span class="ineq-side ineq-r">przychód</span>
+      </p>
+
+      <ol class="mech-list">
+        <li class="mech-row">
+          <div class="mech-copy">
+            <div class="mech-head">
+              <h3>Oszczędności <em>półautomatyczne</em></h3>
+              <span class="mech-tag">płać sobie najpierw</span>
             </div>
-            <div class="lp-hero-meta">
-              <span><b>0&nbsp;zł</b> · póki co</span>
-              <span><b>Pula zmienna</b> · adaptacyjna</span>
-              <span><b>Bearer&nbsp;token</b> · agent ready</span>
+            <p>
+              Księga wykrywa przychód na wyciągu i wylicza, ile odłożyć — według
+              Twojego poziomu trudności. Ty robisz przelew, a zadanie potwierdza się
+              dopiero, gdy system znajdzie go w banku. Klik nie zmienia sald; bank tak.
+            </p>
+          </div>
+          <div class="mech-visual">
+            <div class="mini-card save-card" role="img" aria-label="Karta zadania oszczędnościowego: wykryty przychód, kwota do odłożenia, potwierdzenie z wyciągu">
+              <div class="mc-head"><span>zadanie oszczędnościowe</span><span class="mc-pct">10%</span></div>
+              <div class="mc-row"><span>Wykryto przychód</span><span class="mc-amt mc-pos">+8 400,00</span></div>
+              <div class="mc-row"><span>Odłóż na „Poduszkę”</span><span class="mc-amt">840,00</span></div>
+              <div class="mc-streak">
+                <i class="sd sd-on"></i><i class="sd sd-on"></i><i class="sd sd-on"></i><i class="sd sd-on"></i><i class="sd"></i>
+                <span>seria: 4 wypłaty</span>
+              </div>
+              <span class="stamp">potwierdzone<br />z wyciągu</span>
             </div>
           </div>
-
-          <!-- Animated mock panel · OSZCZĘDNOŚCIOMIERZ -->
-          <aside class="lp-hero-side" aria-hidden="true">
-            <div class="lp-hero-mini">
-              <span class="eyebrow">· Oszczędnościomierz · zł/h</span>
-              <span class="chip pos mono">przed planem</span>
+        </li>
+        <li class="mech-row">
+          <div class="mech-copy">
+            <div class="mech-head">
+              <h3>Pauza</h3>
+              <span class="mech-tag">24 h – 10 dni</span>
             </div>
-            <div class="lp-vault-hero">
-              <span class="bignum"><span id="lp-vault-int">0</span><span class="grosze">,<span id="lp-vault-dec">00</span></span><span class="currency">zł/h</span></span>
-            </div>
-            <div class="lp-vault-hero-delta">
-              <span>↑</span><span id="lp-vault-delta">pula 8&nbsp;728,99 zł / 432 h do końca maja</span>
-            </div>
-
-            <div class="eyebrow" style="margin-top:22px;margin-bottom:6px">14 dni · streak „Przelałem"</div>
-            <div class="lp-streak-strip" id="lp-streak"></div>
-
-            <div class="lp-hero-tile">
-              <span class="dot lg" style="background: var(--pos)"></span>
-              <div>
-                <div style="font-size:13px">Wczoraj zaoszczędzone: <em style="font-style:normal">limit − wydane</em></div>
-                <div class="mono" style="font-size:11px;color:var(--ink-4)">Zamknij zysk → przelej 80&nbsp;zł na Wakacje 2026</div>
+            <p>
+              Większe zakupy najpierw czekają. Zapisujesz, co chcesz kupić, odpowiadasz
+              na pytanie „co konkretnie zmieni się w moim życiu, jeśli to kupię?” —
+              i dostajesz blokadę zależną od kwoty. Po niej decyzja: kupione albo odrzucone.
+            </p>
+          </div>
+          <div class="mech-visual">
+            <div class="mini-card pause-card" role="img" aria-label="Karta Pauzy: wstrzymany zakup słuchawek, pasek blokady, decyzja po blokadzie">
+              <div class="mc-head"><span>pauza</span><span class="mc-status">wstrzymane</span></div>
+              <div class="mc-row"><span>Słuchawki ANC</span><span class="mc-amt">1 299,00</span></div>
+              <p class="mc-q">„Co konkretnie zmieni się w moim życiu, jeśli to kupię?”</p>
+              <div class="mc-lock">
+                <div class="mc-lockbar"><i></i></div>
+                <span>odblokuje się za 26 h</span>
               </div>
-              <span class="tile-amt mono">+80,00&nbsp;zł</span>
+              <div class="mc-decide">
+                <span>po blokadzie:</span>
+                <span class="mc-btn">Kupione</span>
+                <span class="mc-btn mc-btn-neg">Odrzucone</span>
+              </div>
             </div>
-          </aside>
+          </div>
+        </li>
+        <li class="mech-row">
+          <div class="mech-copy">
+            <div class="mech-head">
+              <h3>Plany</h3>
+              <span class="mech-tag">starczy mi?</span>
+            </div>
+            <p>
+              Kanapa, laptop, serwis auta — zapisujesz duże wydatki w ich miesiącach,
+              a księga rysuje jedną krzywą cashflow: od tego, co masz dziś, przez
+              „z grubsza zarabiasz i wydajesz”, po poduszkę, pod którą się nie schodzi.
+              Zielona kropka: mieści się. Czerwona: „zmieści się od stycznia — przesuń”.
+              A zachcianki z Pauzy straszą na osi jako duchy.
+            </p>
+          </div>
+          <div class="mech-visual">
+            <div class="mini-card plan-card" role="img" aria-label="Karta Planów: krzywa cashflow na 12 miesięcy z linią poduszki, zielona kropka przy kanapie, czerwona przy laptopie z podpowiedzią przesunięcia, duch słuchawek z Pauzy">
+              <div class="mc-head"><span>plany · oś 12 mies.</span><span class="mc-chip">poduszka 5 000</span></div>
+              <p class="pc-assume">masz 11 250 · ~+8 400 · ~−6 900 /mies.</p>
+              <svg class="pc-chart" viewBox="0 0 320 96" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                <line class="pc-floor" x1="10" y1="66" x2="308" y2="66" />
+                <text class="pc-floor-label" x="11" y="78">poduszka</text>
+                <path class="pc-ghostline" d="M37 42 L64 46 L92 52 L119 56 L146 84 L173 70 L200 64 L227 58 L254 54 L281 50 L308 46" />
+                <path class="pc-curve" d="M10 36 L37 34 L64 38 L92 44 L119 48 L146 76 L173 62 L200 56 L227 50 L254 46 L281 42 L308 38" />
+                <circle class="pc-dot-svg pc-dot-svg-pos" cx="92" cy="44" r="4.5" />
+                <circle class="pc-dot-svg pc-dot-svg-neg" cx="146" cy="76" r="4.5" />
+              </svg>
+              <div class="pc-rows">
+                <div class="pc-row"><i class="pc-dot pc-dot-pos"></i><span class="pc-name">Kanapa</span><span class="pc-when">wrzesień</span><span class="mc-amt">4 500</span></div>
+                <div class="pc-row"><i class="pc-dot pc-dot-neg"></i><span class="pc-name">Laptop</span><span class="pc-when">listopad</span><span class="mc-amt">9 200</span></div>
+                <div class="pc-hint">zmieści się od stycznia — <span class="pc-move">przesuń</span></div>
+                <div class="pc-row pc-row-ghost"><i class="pc-dot pc-dot-ghost"></i><span class="pc-name">Słuchawki ANC <small>↩ z Pauzy</small></span><span class="pc-when">duch</span><span class="mc-amt">1 299</span></div>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ════════ 03 · FLOW ════════ -->
+    <section class="chapter flow" id="rozdzial-03" data-chapter="03">
+      <div class="flow-pin">
+        <header class="chapter-head">
+          <span class="chapter-no">03</span>
+          <span class="chapter-name">Przepływ</span>
+        </header>
+        <h2 class="chapter-title split-lines">Zobacz <em>przepływ,</em> nie tabelkę.</h2>
+        <p class="chapter-lead">
+          Widok Flow rysuje drogę pieniędzy przez miesiąc:
+          stałe osobno, zmienne osobno, oszczędności na końcu.
+        </p>
+
+        <figure class="sankey-stage">
+          <svg class="sankey" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" role="img"
+               aria-label="Diagram przepływu: przychód rozdziela się na mieszkanie, rachunki, jedzenie, miasto, oszczędności i nieprzewidziane">
+            <path class="s-flow s-ink"  data-flow style="stroke-width:54" d="M120 282 C 400 282, 560 96,  880 96" />
+            <path class="s-flow s-ink2" data-flow style="stroke-width:36" d="M120 282 C 400 282, 560 196, 880 196" />
+            <path class="s-flow s-ink"  data-flow style="stroke-width:46" d="M120 282 C 400 282, 560 296, 880 296" />
+            <path class="s-flow s-ink3" data-flow style="stroke-width:28" d="M120 282 C 400 282, 560 384, 880 384" />
+            <path class="s-flow s-pos"  data-flow style="stroke-width:32" d="M120 282 C 400 282, 560 462, 880 462" />
+            <path class="s-flow s-neg"  data-flow style="stroke-width:8"  d="M120 282 C 400 282, 560 524, 880 524" />
+
+            <g class="s-label s-label-src">
+              <text x="112" y="252" text-anchor="end" class="s-name">PRZYCHÓD</text>
+              <text x="112" y="274" text-anchor="end" class="s-val">8 400,00</text>
+            </g>
+            <g class="s-label"><text x="892" y="92"  class="s-name">MIESZKANIE</text><text x="892" y="112" class="s-val">2 100,00</text></g>
+            <g class="s-label"><text x="892" y="192" class="s-name">RACHUNKI</text><text x="892" y="212" class="s-val">940,00</text></g>
+            <g class="s-label"><text x="892" y="292" class="s-name">JEDZENIE</text><text x="892" y="312" class="s-val">1 680,00</text></g>
+            <g class="s-label"><text x="892" y="380" class="s-name">MIASTO</text><text x="892" y="400" class="s-val">760,00</text></g>
+            <g class="s-label"><text x="892" y="458" class="s-name s-name-pos">OSZCZĘDNOŚCI</text><text x="892" y="478" class="s-val">1 200,00</text></g>
+            <g class="s-label"><text x="892" y="522" class="s-name s-name-neg">NIEPRZEWIDZIANE</text><text x="892" y="542" class="s-val">412,38</text></g>
+          </svg>
+          <figcaption class="stage-caption">Stałe vs zmienne · przykładowy miesiąc, dane demo</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ════════ 04 · IMPORT ════════ -->
+    <section class="chapter ledger" id="rozdzial-04" data-chapter="04">
+      <header class="chapter-head">
+        <span class="chapter-no">04</span>
+        <span class="chapter-name">Księgowanie</span>
+      </header>
+      <h2 class="chapter-title split-lines">Wrzucasz wyciąg. <em>AI księguje.</em></h2>
+      <p class="chapter-lead">
+        CSV albo MT940 prosto z banku. Podgląd przed zatwierdzeniem,
+        kategorie podpowiedziane przez AI — nic nie wpada do księgi bez Twojej zgody.
+      </p>
+
+      <div class="ledger-card">
+        <div class="ledger-head">
+          <span class="ledger-file">wyciag_maj.mt940</span>
+          <span class="ai-badge"><span class="ai-dot"></span>AI klasyfikuje</span>
+        </div>
+        <ol class="ledger-rows">
+          <li class="ledger-row">
+            <span class="lr-date">04.05</span>
+            <span class="lr-desc">CZYNSZ MAJ — WSPÓLNOTA</span>
+            <span class="lr-amt">−2 100,00</span>
+            <span class="lr-chip" data-cat="Mieszkanie">···</span>
+          </li>
+          <li class="ledger-row">
+            <span class="lr-date">06.05</span>
+            <span class="lr-desc">BIEDRONKA 132 WARSZAWA</span>
+            <span class="lr-amt">−86,42</span>
+            <span class="lr-chip" data-cat="Jedzenie">···</span>
+          </li>
+          <li class="ledger-row">
+            <span class="lr-date">10.05</span>
+            <span class="lr-desc">SPOTIFY P3F4D1</span>
+            <span class="lr-amt">−23,99</span>
+            <span class="lr-chip" data-cat="Subskrypcje">···</span>
+          </li>
+          <li class="ledger-row">
+            <span class="lr-date">12.05</span>
+            <span class="lr-desc">PKP INTERCITY BILET</span>
+            <span class="lr-amt">−49,00</span>
+            <span class="lr-chip" data-cat="Transport">···</span>
+          </li>
+          <li class="ledger-row">
+            <span class="lr-date">28.05</span>
+            <span class="lr-desc">WYNAGRODZENIE</span>
+            <span class="lr-amt lr-amt-pos">+8 400,00</span>
+            <span class="lr-chip lr-chip-pos" data-cat="Przychód">···</span>
+          </li>
+        </ol>
+        <div class="ledger-foot">
+          <span>5 wierszy · 5 sklasyfikowanych</span>
+          <span class="ledger-approve">zatwierdzasz jednym kliknięciem</span>
         </div>
       </div>
     </section>
 
-    <!-- Marquee -->
-    <div class="lp-marquee" aria-hidden="true">
-      <div class="lp-marquee-track">
-        <span>Oszczędnościomierz · zł/h<i></i></span>
-        <span>Codzienny rytuał „Zamknij zysk"<i></i></span>
-        <span>Pula zmienna · adaptacyjna<i></i></span>
-        <span>Burndown miesięczny<i></i></span>
-        <span>Streak za „Przelałem"<i></i></span>
-        <span>Import CSV / MT940<i></i></span>
-        <span>Skill agenta · MCP<i></i></span>
-        <span>Bearer token · /api/agent<i></i></span>
-        <span>Oszczędnościomierz · zł/h<i></i></span>
-        <span>Codzienny rytuał „Zamknij zysk"<i></i></span>
-        <span>Pula zmienna · adaptacyjna<i></i></span>
-        <span>Burndown miesięczny<i></i></span>
-        <span>Streak za „Przelałem"<i></i></span>
-        <span>Import CSV / MT940<i></i></span>
-        <span>Skill agenta · MCP<i></i></span>
-        <span>Bearer token · /api/agent<i></i></span>
+    <!-- ════════ 05 · AGENT API ════════ -->
+    <section class="chapter agent" id="rozdzial-05" data-chapter="05">
+      <div class="agent-inner">
+        <header class="chapter-head chapter-head-inverse">
+          <span class="chapter-no">05</span>
+          <span class="chapter-name">API</span>
+        </header>
+        <h2 class="chapter-title split-lines">Zbudowane także <em>dla agentów.</em></h2>
+        <p class="chapter-lead">
+          Wygeneruj klucz w panelu „Klucze API agenta”, a Twój agent AI
+          sam przygotuje import i poprosi o zatwierdzenie.
+        </p>
+
+        <div class="terminal" role="img" aria-label="Przykład użycia API agenta: preview importu, potem commit">
+          <div class="t-line"><span class="t-method">POST</span> /api/agent/import/preview</div>
+          <div class="t-line t-dim">Authorization: Bearer &lt;AGENT_API_KEY&gt;</div>
+          <div class="t-line t-dim">Content-Type: text/csv</div>
+          <div class="t-line t-resp">→ 21 wierszy, 19 sklasyfikowanych</div>
+          <div class="t-line t-gap"><span class="t-method">POST</span> /api/agent/import/commit</div>
+          <div class="t-line t-resp">→ { "ok": <span class="t-true">true</span> }</div>
+        </div>
+        <p class="agent-micro">Każdy endpoint <code>/api/agent/*</code> wymaga tokenu Bearer. Ty trzymasz klucze.</p>
+      </div>
+    </section>
+
+    <!-- ════════ 06 · DETALE ════════ -->
+    <section class="chapter details" id="rozdzial-06" data-chapter="06">
+      <header class="chapter-head">
+        <span class="chapter-no">06</span>
+        <span class="chapter-name">Detale</span>
+      </header>
+      <h2 class="chapter-title split-lines">Księgowość domowa, <em>bez księgowego.</em></h2>
+
+      <div class="details-grid">
+        <article class="detail-card">
+          <span class="detail-no">a.</span>
+          <h3>Przelewy między kontami</h3>
+          <p>Dwa wiersze, jeden <code>transferId</code>, salda obu kont aktualizowane atomowo. Przelew to nie wydatek — i księga o tym wie.</p>
+        </article>
+        <article class="detail-card">
+          <span class="detail-no">b.</span>
+          <h3>Paleta poleceń</h3>
+          <p><code>⌘K</code> otwiera całą księgę: szybkie dodanie transakcji, skok do widoku, wyszukiwanie — bez odrywania rąk od klawiatury.</p>
+        </article>
+        <article class="detail-card">
+          <span class="detail-no">c.</span>
+          <h3>Telefon i ciemny tryb</h3>
+          <p>Osobny widok mobilny zamiast ściśniętego desktopu, plus jasna i ciemna wersja księgi.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ════════ MARQUEE ════════ -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Przychód&nbsp;→&nbsp;Stałe&nbsp;→&nbsp;Zmienne&nbsp;→&nbsp;Oszczędności&nbsp;→&nbsp;</span><span>Przychód&nbsp;→&nbsp;Stałe&nbsp;→&nbsp;Zmienne&nbsp;→&nbsp;Oszczędności&nbsp;→&nbsp;</span>
       </div>
     </div>
 
-    <!-- ─── PILLARS ─── -->
-    <section class="lp-sec" id="system">
-      <div class="lp-wrap">
-        <div class="lp-sec-eyebrow"><span class="dot" style="background:var(--ink)"></span><span class="eyebrow">· Cztery filary</span></div>
-        <h2 class="lp-sec-h">Co robi BR&nbsp;Budget. Krótko.</h2>
-        <p class="lp-sec-sub">
-          Cztery rzeczy, które chcieliśmy mieć sami. Bez integracji bankowej, bez sztucznych mnożników, bez przeładowanego pulpitu — jedno zadanie na dzień.
-        </p>
-
-        <div class="lp-pillars">
-          <div class="lp-pillar lp-reveal">
-            <div class="lp-pillar-num">01</div>
-            <h3 class="lp-pillar-h">Używaj ze swoim agentem</h3>
-            <p class="lp-pillar-p">Bearer token i&nbsp;Skill dla agenta. openClaw, Hermes, MCP albo własny — agent dodaje transakcje, prowadzi import i&nbsp;czyta pulpit.</p>
-            <span class="lp-pillar-tag">· /api/agent · skill · mcp</span>
-          </div>
-          <div class="lp-pillar lp-reveal">
-            <div class="lp-pillar-num">02</div>
-            <h3 class="lp-pillar-h">Analizuj wydatki</h3>
-            <p class="lp-pillar-p">AI kategoryzuje wiersze przy imporcie, dzieli kategorie na <span class="mono">fixed</span>&nbsp;/&nbsp;<span class="mono">variable</span> i&nbsp;wykrywa duplikaty. Ty zatwierdzasz jednym klawiszem.</p>
-            <span class="lp-pillar-tag">· kategoryzacja · duplikaty · trendy</span>
-          </div>
-          <div class="lp-pillar lp-reveal">
-            <div class="lp-pillar-num">03</div>
-            <h3 class="lp-pillar-h">Buduj budżety</h3>
-            <p class="lp-pillar-p">Pula zmienna na miesiąc, koszty stałe poza grą, burndown z&nbsp;wyraźnym statusem <em>przed&nbsp;/&nbsp;na granicy&nbsp;/&nbsp;za&nbsp;planem</em>. Plus trend 7&nbsp;dni.</p>
-            <span class="lp-pillar-tag">· pula zmienna · burndown · trend</span>
-          </div>
-          <div class="lp-pillar lp-reveal">
-            <div class="lp-pillar-num">04</div>
-            <h3 class="lp-pillar-h">Gamifikuj oszczędzanie</h3>
-            <p class="lp-pillar-p">Codzienny rytuał „Zamknij zysk" plus streak, który rośnie tylko po kliknięciu <em>Przelałem</em>. Bez fikcyjnych mnożników — liczy się realny przelew.</p>
-            <span class="lp-pillar-tag">· rytuał · streak · transfer</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── AI FIRST ─── -->
-    <section class="lp-sec" id="ai" style="background: var(--paper-2)">
-      <div class="lp-wrap">
-        <div class="lp-sec-eyebrow"><span class="dot" style="background:var(--pos)"></span><span class="eyebrow">· Najważniejsze · AI first</span></div>
-
-        <div class="lp-ai">
-          <div class="lp-ai-left">
-            <h2 class="lp-sec-h">Twój agent rozumie<br>Twoje pieniądze.</h2>
-            <p class="lp-sec-sub">
-              BR&nbsp;Budget ma natywne API dla agentów. Generujesz <span class="mono">AGENT_API_KEY</span>, podajesz agentowi — dalej działa sam: dodaje transakcje, prowadzi dwuetapowy import (preview → commit), czyta pulpit. Ty mówisz po polsku, agent rozmawia z&nbsp;systemem za&nbsp;Ciebie.
-            </p>
-
-            <ul class="lp-ai-bullets">
-              <li>
-                <span><b>Bearer token na konto.</b><small>Jeden token przypisany do użytkownika. Agent widzi tylko Twoje konta, kategorie i&nbsp;transakcje. Skill dla openClaw / Hermes drop-in.</small></span>
-              </li>
-              <li>
-                <span><b>Dwuetapowy import.</b><small><span class="mono">/api/agent/import/preview</span> → wiersze, sugestie, duplikaty, pokrycie miesiąca. <span class="mono">/api/agent/import/commit</span> → zapis dopiero po decyzji.</small></span>
-              </li>
-              <li>
-                <span><b>Transakcje i pulpit.</b><small><span class="mono">POST /api/agent/transactions</span> dodaje wydatek z kategorią. <span class="mono">GET /api/agent/summary</span> zwraca miesiąc, salda i kluczowe statystyki dla coacha.</small></span>
-              </li>
-              <li>
-                <span><b>Wymuszenie kategorii.</b><small>Agent nie commituje wydatków bez kategorii — API odpowie błędem z listą brakujących wierszy. Mechanika no-spend zostaje czysta.</small></span>
-              </li>
-            </ul>
-
-            <div class="lp-agent-row">
-              <span class="lp-agent-chip live"><i></i>openClaw · 0.4.2</span>
-              <span class="lp-agent-chip live"><i></i>Hermes · stable</span>
-              <span class="lp-agent-chip"><i></i>Claude / Code</span>
-              <span class="lp-agent-chip"><i></i>MCP server</span>
-              <span class="lp-agent-chip"><i></i>REST + Webhook</span>
-            </div>
-          </div>
-
-          <!-- Terminal/agent transcript -->
-          <div class="lp-term" id="lp-term">
-            <div class="lp-term-bar">
-              <div class="dots"><i></i><i></i><i></i></div>
-              <div class="lp-term-title">openclaw · agent · br_budget.skill</div>
-            </div>
-            <div class="lp-term-body" id="lp-term-body"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── MECHANIKA NO-SPEND ─── -->
-    <section class="lp-sec" id="behavior">
-      <div class="lp-wrap">
-        <div class="lp-sec-eyebrow"><span class="dot" style="background:var(--ink)"></span><span class="eyebrow">· Mechanika no-spend</span></div>
-
-        <div class="lp-beh">
-          <div class="lp-beh-list">
-            <div class="lp-beh-item lp-reveal">
-              <div class="num">i.</div>
-              <div>
-                <h3>Tylko pula zmienna.</h3>
-                <p>Kategorie dzielą się na <span class="mono">fixed</span> (rachunki, kredyty) i&nbsp;<span class="mono">variable</span> (restauracje, rozrywka, impulsy). Mechanika no-spend liczy tylko zmienne — koszty stałe nie mieszają się z&nbsp;grą.</p>
-              </div>
-            </div>
-            <div class="lp-beh-item lp-reveal">
-              <div class="num">ii.</div>
-              <div>
-                <h3>Oszczędnościomierz w&nbsp;zł/h.</h3>
-                <p>Pozostała pula zmienna podzielona przez liczbę godzin do&nbsp;końca miesiąca. Nie wydajesz — licznik rośnie. Wydatek zmienny — licznik spada. Bez arbitralnych mnożników.</p>
-              </div>
-            </div>
-            <div class="lp-beh-item lp-reveal">
-              <div class="num">iii.</div>
-              <div>
-                <h3>Codzienny rytuał „Zamknij zysk".</h3>
-                <p>Rano system liczy wczorajszy wynik. Jeśli dodatni — tworzy zadanie przelewu na&nbsp;procent zapasu. Jeden ekran, jedno zdanie, jeden przycisk: <em>Przelałem</em>.</p>
-              </div>
-            </div>
-            <div class="lp-beh-item lp-reveal">
-              <div class="num">iv.</div>
-              <div>
-                <h3>Streak za realny przelew.</h3>
-                <p>Streak rośnie tylko po kliknięciu <em>Przelałem</em>, nie za samo niewydawanie. Pieniądze faktycznie zmieniają konto — gamifikacja bez ściemniania.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Visualization · Burndown + morning ritual + streak -->
-          <div class="lp-beh-canvas">
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px">
-                <span class="eyebrow">· Burndown · maj 2026</span>
-                <span class="chip pos mono">przed planem · trend ↑</span>
-              </div>
-              <div class="lp-beh-vault" style="margin-top:6px">
-                <span class="bignum"><span id="lp-beh-int">0</span><span class="grosze">,<span id="lp-beh-dec">00</span></span><span class="currency">zł</span></span>
-                <span class="chip mono">zostało</span>
-              </div>
-              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px;font-size:12px">
-                <div><div style="color:var(--ink-4)" class="eyebrow">Wydane</div><div class="mono" style="font-size:18px">40%</div></div>
-                <div><div style="color:var(--ink-4)" class="eyebrow">Czas</div><div class="mono" style="font-size:18px">32%</div></div>
-                <div><div style="color:var(--ink-4)" class="eyebrow">Luz</div><div class="mono" style="font-size:18px;color:var(--pos)">+1 206 zł</div></div>
-              </div>
-              <svg class="lp-burn" viewBox="0 0 320 120" preserveAspectRatio="none" aria-hidden="true">
-                <line x1="0" y1="10" x2="320" y2="110" stroke="currentColor" stroke-width="1" stroke-dasharray="3 4" opacity="0.35"/>
-                <path d="M0,10 L20,18 L40,24 L60,30 L80,33 L100,42 L120,48 L140,52 L160,58" fill="none" stroke="currentColor" stroke-width="1.6" class="lp-burn-line"/>
-                <circle cx="160" cy="58" r="3" fill="currentColor" class="lp-burn-dot"/>
-                <line x1="160" y1="0" x2="160" y2="120" stroke="currentColor" stroke-width="1" opacity="0.18"/>
-              </svg>
-            </div>
-
-            <div class="lp-beh-card lp-beh-pause">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-                <span class="eyebrow">Ranny ekran · Zamknij zysk</span>
-                <span class="mono" style="font-size:11px;color:var(--ink-4)">9:14 · pon.</span>
-              </div>
-              <div style="font-family:var(--font-serif);font-size:22px;line-height:1.25;margin-bottom:6px">
-                Cześć Bartek.<br>
-                Wczoraj wydałeś <em style="font-style:italic">620&nbsp;zł mniej</em> niż dzienny limit.
-              </div>
-              <div style="font-size:13px;color:var(--ink-3);margin-bottom:14px">
-                Zamknij zysk: przelej <b style="color:var(--ink)">80&nbsp;zł</b> na&nbsp;Wakacje&nbsp;2026.
-              </div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <span class="btn sm" style="pointer-events:none">Przelałem 80 zł</span>
-                <span class="btn ghost sm" style="pointer-events:none">Później</span>
-              </div>
-            </div>
-
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                <span class="eyebrow">28 dni · streak „Przelałem"</span>
-                <span class="mono" style="font-size:11px;color:var(--ink-4)">rekord 41 d</span>
-              </div>
-              <div class="lp-beh-streak-row" id="lp-beh-streak"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── IMPORT FIRST ─── -->
-    <section class="lp-sec" id="import" style="background:var(--paper-2)">
-      <div class="lp-wrap">
-        <div class="lp-sec-eyebrow"><span class="dot" style="background:var(--warn)"></span><span class="eyebrow">· Import first · żadnego open-bankingu</span></div>
-
-        <div class="lp-import">
-          <div>
-            <h2 class="lp-sec-h">Wrzuć plik. Resztę zrobimy.</h2>
-            <p class="lp-sec-sub">
-              Nie łączymy się z&nbsp;Twoim bankiem. Zamiast tego — drag &amp; drop wyciągu z&nbsp;CSV/MT940. Mapujemy kolumny, AI proponuje kategorie, wykrywamy duplikaty. Ty potwierdzasz jednym klawiszem.
-            </p>
-            <ul class="lp-ai-bullets" style="margin-top:28px">
-              <li><span><b>Millennium · mBank · ING · PKO · Santander · Revolut.</b><small>Auto-wykrywanie schematu — wystarczy upuścić plik.</small></span></li>
-              <li><span><b>Ręczne dodawanie w&nbsp;3&nbsp;sekundy.</b><small>Skrót <span class="kbd">N</span> wszędzie. Także z&nbsp;palety <span class="kbd">⌘</span><span class="kbd">K</span>.</small></span></li>
-              <li><span><b>Brak zgody dla open-bankingu.</b><small>Twoje konto bankowe pozostaje Twoje. My nigdy go nie widzimy.</small></span></li>
-            </ul>
-          </div>
-
-          <div class="lp-import-vis">
-            <div class="lp-import-stage">
-              <div class="lp-import-file">
-                <div class="lp-import-file-icon">CSV</div>
-                <div style="flex:1">
-                  <div class="lp-import-file-name">mil_4421_2026_05.csv</div>
-                  <div class="lp-import-file-meta">28 wierszy · 4.3 KB · wykryto: Millennium</div>
-                </div>
-                <span class="chip pos mono">OK</span>
-              </div>
-
-              <div class="lp-import-arrows">
-                <span class="line"></span>
-                <span>· Mapujemy &amp; kategoryzujemy ·</span>
-                <span class="line"></span>
-              </div>
-
-              <div class="lp-import-rows" id="lp-rows">
-                <div class="row" style="font-family:var(--font-mono);font-size:10.5px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.06em">
-                  <span class="date">Data</span>
-                  <span class="payee">Tytuł</span>
-                  <span class="amt" style="text-align:right">Kwota</span>
-                  <span class="cat" style="text-align:right">Kat.</span>
-                </div>
-                <div class="row tagging" data-target="Kawa"><span class="date">12.05</span><span class="payee">Costa Coffee · Marszałkowska</span><span class="amt">−16,90</span><span class="cat tag">…</span></div>
-                <div class="row tagging" data-target="Spożywcze"><span class="date">12.05</span><span class="payee">Biedronka 4421</span><span class="amt">−84,17</span><span class="cat tag">…</span></div>
-                <div class="row tagging" data-target="Transport"><span class="date">11.05</span><span class="payee">JakDojadę bilet 75min</span><span class="amt">−6,00</span><span class="cat tag">…</span></div>
-                <div class="row tagging" data-target="Subskrypcje"><span class="date">10.05</span><span class="payee">Spotify Premium Family</span><span class="amt">−29,99</span><span class="cat tag">…</span></div>
-                <div class="row unmapped"><span class="date">10.05</span><span class="payee">PRZELEW · MIROSŁAW K.</span><span class="amt">−320,00</span><span class="cat">do oznaczenia</span></div>
-                <div class="row tagging" data-target="Wynagrodzenie"><span class="date">09.05</span><span class="payee">UMOWA O PRACĘ · ACME</span><span class="amt">+9&nbsp;420,00</span><span class="cat tag">…</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── PLATFORMS ─── -->
-    <section class="lp-sec" id="platforms">
-      <div class="lp-wrap">
-        <div class="lp-sec-eyebrow"><span class="dot"></span><span class="eyebrow">· Desktop &amp; Mobile</span></div>
-        <h2 class="lp-sec-h">Zaprojektowane jak edytor.<br>Działa jak notes.</h2>
-        <p class="lp-sec-sub">
-          Klawiszologia z&nbsp;palety komend, gęstości UI do&nbsp;wyboru, dark mode od&nbsp;pierwszego dnia. Mobile to&nbsp;skupiony skrót — tylko Dziś, Pause i&nbsp;szybkie dodanie.
-        </p>
-
-        <div class="lp-platforms">
-          <div class="lp-platform-meta">
-            <h3>Desktop · komenda i&nbsp;klawiatura</h3>
-            <p><span class="kbd">⌘</span><span class="kbd">K</span> — paleta. <span class="kbd">N</span> — nowa transakcja. <span class="kbd">/</span> — szukaj. Bez myszy. Bez konfiguracji.</p>
-            <div class="lp-platform-stack">
-              <span><i></i>React + Edge runtime</span>
-              <span><i></i>SQLite · lokalnie</span>
-              <span><i></i>Sync end-to-end (wkrótce)</span>
-            </div>
-          </div>
-
-          <div class="lp-platform-vis" id="lp-platform-canvas" data-mock-theme="light">
-            <div class="lp-mock-toggle" role="tablist" aria-label="Motyw podglądu aplikacji">
-              <button type="button" role="tab" data-mock="light" class="is-on">○ Light</button>
-              <button type="button" role="tab" data-mock="dark">● Dark</button>
-            </div>
-            <!-- Laptop mock -->
-            <div class="lp-laptop">
-              <div class="lp-laptop-bar"><i></i><i></i><i></i></div>
-              <div class="lp-laptop-body">
-                <div class="eyebrow" style="margin-bottom:6px">· Pulpit · maj</div>
-                <h4 class="lp-laptop-h">Do przydzielenia · 1&nbsp;240,00&nbsp;zł</h4>
-                <div class="lp-laptop-stats">
-                  <div class="lp-laptop-stat"><div class="l">Wpływy</div><div class="n">9 420</div></div>
-                  <div class="lp-laptop-stat"><div class="l">Wydatki</div><div class="n">5 870</div></div>
-                  <div class="lp-laptop-stat"><div class="l">Vault</div><div class="n">3 280</div></div>
-                </div>
-                <div class="lp-laptop-bars">
-                  <div class="lp-laptop-bar-row"><span class="lbl">Spożywcze</span><div class="bar"><i style="width:62%"></i></div><span class="val">62%</span></div>
-                  <div class="lp-laptop-bar-row"><span class="lbl">Restauracje</span><div class="bar"><i style="width:88%;background:var(--warn)"></i></div><span class="val">88%</span></div>
-                  <div class="lp-laptop-bar-row"><span class="lbl">Subskrypcje</span><div class="bar full"><i style="width:100%"></i></div><span class="val">100%</span></div>
-                  <div class="lp-laptop-bar-row"><span class="lbl">Transport</span><div class="bar"><i style="width:34%"></i></div><span class="val">34%</span></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Phone mock -->
-            <div class="lp-phone">
-              <div class="lp-phone-screen">
-                <div class="lp-phone-eyebrow">· Dziś · pon. 12 maja</div>
-                <div class="lp-phone-h">Pomiń kawę o&nbsp;15:00</div>
-                <div style="margin-top:14px">
-                  <div class="lp-phone-eyebrow">Oszczędnościomierz</div>
-                  <div class="lp-phone-num" id="lp-phone-num">20<span style="font-size:.42em;color:var(--ink-3)">,21 zł/h</span></div>
-                  <div class="lp-phone-sub">↑ przed planem · trend ↑</div>
-                </div>
-                <div style="margin-top:18px">
-                  <div class="lp-phone-eyebrow">7 dni</div>
-                  <div class="lp-phone-streak" id="lp-phone-streak"></div>
-                </div>
-                <div class="lp-phone-rows">
-                  <div class="lp-phone-row"><span class="l">Do przelania</span><span class="r">80,00 zł</span></div>
-                  <div class="lp-phone-row"><span class="l">Dostępne dziś</span><span class="r">312,00 zł</span></div>
-                  <div class="lp-phone-row"><span class="l">Streak „Przelałem"</span><span class="r">14 d</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── PRICING ─── -->
-    <section class="lp-sec" id="cennik" style="background:var(--paper-2)">
-      <div class="lp-wrap">
-        <div class="lp-sec-eyebrow"><span class="dot" style="background:var(--pos)"></span><span class="eyebrow">· Cennik</span></div>
-        <h2 class="lp-sec-h">Darmowy. Póki co — szczerze.</h2>
-        <p class="lp-sec-sub">
-          Budujemy BR&nbsp;Budget tak, jak chcielibyśmy używać sami. Dziś jest darmowy dla pierwszych użytkowników. Kiedy dodamy sync, agentów premium i&nbsp;raportowanie — pojawi się płatny plan. Wcześniej powiemy.
-        </p>
-
-        <div class="lp-price">
-          <div class="lp-price-card featured">
-            <span class="lp-price-eyebrow">· Free · early access</span>
-            <h3 class="lp-price-h">BR&nbsp;Budget</h3>
-            <div class="lp-price-bignum">0<small>zł / miesiąc</small></div>
-            <ul class="lp-price-list">
-              <li>Oszczędnościomierz, burndown, codzienny rytuał</li>
-              <li>Pula zmienna · kategorie fixed/variable · streak</li>
-              <li>Import CSV / MT940 + AI kategoryzacja</li>
-              <li>Bearer token · /api/agent · Skill dla openClaw, Hermes, MCP</li>
-              <li>Desktop + Mobile, dark/light, paleta ⌘K</li>
-            </ul>
-            <a class="btn ghost lp-price-cta" href="/register" style="text-decoration:none">Załóż konto · 30 sekund →</a>
-          </div>
-
-          <div class="lp-price-card">
-            <span class="lp-price-eyebrow">· Wkrótce · Pro</span>
-            <h3 class="lp-price-h">Pro · gdy będziemy gotowi</h3>
-            <div class="lp-price-bignum" style="color:var(--ink-4)">~24<small>zł / miesiąc</small></div>
-            <ul class="lp-price-list">
-              <li>Sync end-to-end między urządzeniami</li>
-              <li>Wiele celów oszczędnościowych naraz</li>
-              <li>Automatyczne wyliczanie puli z przychodów</li>
-              <li>Współdzielone budżety dla par/rodzin</li>
-              <li>Coaching AI z dłuższą pamięcią, eksport</li>
-            </ul>
-            <a class="btn ghost lp-price-cta" href="mailto:bartosz.rychlicki@gmail.com?subject=BR-Budget%20Pro" style="text-decoration:none">Zapisz się na listę →</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ─── CHANGELOG ─── -->
-    <section class="lp-sec tight" id="changelog">
-      <div class="lp-wrap">
-        <div class="lp-sec-eyebrow"><span class="dot" style="background:var(--ink)"></span><span class="eyebrow">· Changelog</span></div>
-        <h2 class="lp-sec-h">v0.9 early access.</h2>
-        <p class="lp-sec-sub">Pierwsza publiczna wersja do testów: import CSV/MT940, oszczędnościomierz, rytuał „Zamknij zysk” i API dla agentów. Feedback mile widziany.</p>
-      </div>
-    </section>
-
-    <!-- ─── CTA ─── -->
-    <section class="lp-cta">
-      <div class="lp-wrap">
-        <h2 class="lp-cta-h">Mniej impulsów. Realne przelewy.</h2>
-        <p class="lp-cta-sub">Oszczędnościomierz tyka teraz. Zamknij zysk jutro rano. Streak ruszy.</p>
-        <div class="lp-cta-row">
-          <a class="btn" href="/register" style="text-decoration:none">Załóż darmowe konto</a>
-          <a class="btn ghost" href="#ai" style="text-decoration:none">Zobacz integrację z agentem</a>
-        </div>
-      </div>
+    <!-- ════════ FINALE ════════ -->
+    <section class="finale">
+      <h2 class="finale-title">Otwórz <em>księgę.</em></h2>
+      <a class="btn btn-ink btn-big" href="/register">Załóż konto</a>
+      <p class="finale-micro">Rejestracja otwarta · tryb jasny i ciemny · budget.bartoszrychlicki.com</p>
     </section>
   </main>
 
-  <!-- ─── FOOTER ─── -->
-  <footer class="lp-foot">
-    <div class="lp-wrap">
-      <div class="lp-foot-grid">
-        <div class="lp-foot-col">
-          <div class="lp-brand" style="margin-bottom:14px">
-            <div class="lp-mark">br</div>
-            <div class="lp-brandtxt">BR Budget</div>
-          </div>
-          <p style="font-size:13px;line-height:1.6;color:var(--ink-3);margin:0;max-width:280px">
-            Autorski system finansów osobistych. AI-first, agent-ready, import-first. Made in Warszawa.
-          </p>
-        </div>
-        <div class="lp-foot-col">
-          <h4>Produkt</h4>
-          <ul>
-            <li><a href="#system">System</a></li>
-            <li><a href="#ai">AI &amp; Agenci</a></li>
-            <li><a href="#import">Import</a></li>
-            <li><a href="#cennik">Cennik</a></li>
-          </ul>
-        </div>
-        <div class="lp-foot-col">
-          <h4>Dla developerów</h4>
-          <ul>
-            <li><a href="#ai">Skill · openClaw</a></li>
-            <li><a href="#ai">MCP server</a></li>
-            <li><a href="#ai">REST &amp; Webhook</a></li>
-            <li><a href="/app">Status</a></li>
-          </ul>
-        </div>
-        <div class="lp-foot-col">
-          <h4>Firma</h4>
-          <ul>
-            <li><a href="https://bartoszrychlicki.com/case-studies/br-budget" rel="noopener noreferrer">Manifest</a></li>
-            <li><a href="#changelog">Changelog</a></li>
-            <li><a href="mailto:bartosz.rychlicki@gmail.com?subject=BR-Budget%20privacy">Polityka prywatności</a></li>
-            <li><a href="mailto:bartosz.rychlicki@gmail.com?subject=BR-Budget">Kontakt</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="lp-foot-bottom">
-        <span>© 2026 BR Budget · v0.9 early</span>
-        <span>·  Designed in Geist + Source Serif 4  ·</span>
-      </div>
-    </div>
+  <footer class="site-footer">
+    <span>BR Budget © 2026</span>
+    <span class="footer-nerd">Wszystkie kwoty w groszach. Serio — <code>amountCents</code>.</span>
+    <a href="/login">Zaloguj się</a>
   </footer>
 
-  <!-- TWEAKS PANEL -->
-  <aside class="tw-panel" id="tw-panel" aria-label="Tweaks">
-    <div class="tw-head"><span class="tw-title">Tweaks · Hero</span><button type="button" class="tw-close" id="tw-close">close</button></div>
-    <div class="tw-sec">
-      <div class="tw-label">Nagłówek hero</div>
-      <div class="tw-opts" id="tw-headlines"></div>
-    </div>
-    <div class="tw-sec" id="tw-custom-wrap" style="display:none">
-      <div class="tw-label">Własny tekst (Enter = nowa linia)</div>
-      <textarea class="tw-ta" id="tw-custom" placeholder="Twój własny nagłówek…"></textarea>
-    </div>
-    <div class="tw-sec">
-      <div class="tw-label">Eyebrow</div>
-      <div class="tw-opts" id="tw-eyebrows"></div>
-    </div>
-  </aside>
-
-  <!-- ─── Animations & interactivity ─── -->
-  <script>
-  (() => {
-    // ─── TWEAKS ───
-    const TWEAKS = /*EDITMODE-BEGIN*/{
-      "heroVariant": "free-first",
-      "customHeadline": "",
-      "heroEyebrow": "ai-first-free-gamify"
-    }/*EDITMODE-END*/;
-
-    const HEADLINES = {
-      'ai-first-free-gamify': { label: 'AI-first · darmowy · gamifikacja', sub: 'Trzy idee w jednym', html: 'Pierwszy budżet <em>AI-first</em>.<br>Gamifikuje <span class="underline">oszczędzanie</span>.<br><em>Darmowy.</em> Póki co.' },
-      'gamify-first':         { label: 'Gamifikacja na pierwszym planie', sub: 'Streak, rytuał, zysk', html: 'Oszczędzanie <em>jak gra</em>.<br>Budżet jak <span class="underline">agent AI</span>.<br>Bez opłat.' },
-      'ai-first':             { label: 'AI-first na pierwszym planie', sub: 'Agent prowadzi, Ty zatwierdzasz', html: 'Twój budżet <em>pisze AI</em>.<br>Ty tylko <span class="underline">nie wydajesz</span>.<br>Streak rośnie.' },
-      'free-first':           { label: '„Darmowy" na pierwszym planie', sub: 'Najmocniejszy haczyk', html: '<em>Darmowy</em> budżet AI-first.<br>Gamifikuje <span class="underline">oszczędzanie</span>.<br>Bez subskrypcji.' },
-      'custom':               { label: 'Własny tekst', sub: 'Pisz sam', html: '' }
-    };
-    const EYEBROWS = {
-      'ai-first-free-gamify': 'AI-first · Darmowy · Gamifikuje oszczędzanie',
-      'ai-first-agent':       'AI-first · Agent-ready · Import-first',
-      'gamify':               'Streak · Codzienny rytuał · Realny przelew',
-      'free':                 'Darmowy · Bez subskrypcji · Bez reklam'
-    };
-
-    const heroH = document.getElementById('lp-hero-h');
-    const eyebrowText = document.getElementById('lp-hero-eyebrow-text');
-    const customWrap = document.getElementById('tw-custom-wrap');
-    const customTa = document.getElementById('tw-custom');
-    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-    function applyHeadline(){
-      if (TWEAKS.heroVariant === 'custom') {
-        heroH.innerHTML = esc(TWEAKS.customHeadline || 'Twój własny nagłówek').split(/\n/).join('<br>');
-        customWrap.style.display = 'block';
-      } else {
-        const v = HEADLINES[TWEAKS.heroVariant] || HEADLINES['ai-first-free-gamify'];
-        heroH.innerHTML = v.html;
-        customWrap.style.display = 'none';
-      }
-    }
-    function applyEyebrow(){ eyebrowText.textContent = EYEBROWS[TWEAKS.heroEyebrow] || EYEBROWS['ai-first-free-gamify']; }
-    function persist(edits){
-      Object.assign(TWEAKS, edits);
-      try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*'); } catch(e){}
-    }
-
-    const headlinesEl = document.getElementById('tw-headlines');
-    Object.entries(HEADLINES).forEach(([key, v]) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tw-opt' + (key === TWEAKS.heroVariant ? ' is-on' : '');
-      b.innerHTML = '<b>' + v.label + '</b><small>' + v.sub + '</small>';
-      b.addEventListener('click', () => {
-        persist({ heroVariant: key });
-        headlinesEl.querySelectorAll('.tw-opt').forEach(x => x.classList.toggle('is-on', x === b));
-        applyHeadline();
-      });
-      headlinesEl.appendChild(b);
-    });
-    customTa.value = TWEAKS.customHeadline || '';
-    customTa.addEventListener('input', () => {
-      persist({ customHeadline: customTa.value });
-      if (TWEAKS.heroVariant === 'custom') applyHeadline();
-    });
-
-    const eyebrowsEl = document.getElementById('tw-eyebrows');
-    Object.entries(EYEBROWS).forEach(([key, txt]) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tw-opt' + (key === TWEAKS.heroEyebrow ? ' is-on' : '');
-      b.innerHTML = '<small>' + txt + '</small>';
-      b.addEventListener('click', () => {
-        persist({ heroEyebrow: key });
-        eyebrowsEl.querySelectorAll('.tw-opt').forEach(x => x.classList.toggle('is-on', x === b));
-        applyEyebrow();
-      });
-      eyebrowsEl.appendChild(b);
-    });
-
-    applyHeadline();
-    applyEyebrow();
-
-    const panel = document.getElementById('tw-panel');
-    window.addEventListener('message', (e) => {
-      const d = e.data || {};
-      if (d.type === '__activate_edit_mode') panel.classList.add('is-open');
-      if (d.type === '__deactivate_edit_mode') panel.classList.remove('is-open');
-    });
-    document.getElementById('tw-close').addEventListener('click', () => {
-      panel.classList.remove('is-open');
-      try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch(e){}
-    });
-    try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch(e){}
-
-    // Theme toggle
-    const themeBtn = document.getElementById('lp-theme');
-    themeBtn?.addEventListener('click', () => {
-      const cur = document.documentElement.getAttribute('data-theme');
-      const next = cur === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
-      try { localStorage.setItem('br-theme', next); } catch(e) {}
-    });
-    try {
-      const saved = localStorage.getItem('br-theme');
-      if (saved) document.documentElement.setAttribute('data-theme', saved);
-    } catch(e) {}
-
-    // ─── Hero streak strip (14 days) ───
-    const heroStreak = document.getElementById('lp-streak');
-    const days = [1,1,1,1,0,1,1,1,1,1,0,1,1,1]; // 0 = dirty, 1 = clean
-    days.forEach((c) => {
-      const el = document.createElement('div');
-      el.className = 'lp-streak-day ' + (c ? 'clean' : 'dirty');
-      heroStreak.appendChild(el);
-    });
-    // Pop animation
-    setInterval(() => {
-      const all = heroStreak.querySelectorAll('.lp-streak-day');
-      const i = Math.floor(Math.random() * all.length);
-      all[i].classList.add('pop');
-      setTimeout(() => all[i].classList.remove('pop'), 350);
-    }, 1700);
-
-    // 28-day behavior streak
-    const behStreak = document.getElementById('lp-beh-streak');
-    if (behStreak) {
-      const big = Array.from({length:28}, (_, i) => (i === 4 || i === 11 || i === 19) ? 0 : 1);
-      big.forEach((c) => {
-        const el = document.createElement('div');
-        el.className = 'lp-streak-day ' + (c ? 'clean' : 'dirty');
-        behStreak.appendChild(el);
-      });
-    }
-
-    // 7-day phone streak
-    const phoneStreak = document.getElementById('lp-phone-streak');
-    if (phoneStreak) {
-      const w = [1,1,1,1,1,1,1];
-      w.forEach((c) => {
-        const el = document.createElement('div');
-        if (c) el.className = 'on';
-        phoneStreak.appendChild(el);
-      });
-    }
-
-    // ─── Animated number counter ───
-    function animateNum(intEl, decEl, target, dur = 1600) {
-      if (!intEl) return;
-      const targetInt = Math.floor(target);
-      const targetDec = Math.round((target - targetInt) * 100);
-      const t0 = performance.now();
-      function step(now) {
-        const t = Math.min(1, (now - t0) / dur);
-        const eased = 1 - Math.pow(1 - t, 3);
-        const cur = target * eased;
-        const ci = Math.floor(cur);
-        intEl.textContent = ci.toLocaleString('pl-PL').replace(/,/g, ' ');
-        if (decEl) {
-          const cd = Math.round((cur - ci) * 100);
-          decEl.textContent = String(cd).padStart(2, '0');
-        }
-        if (t < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }
-
-    // Trigger counter when hero visible
-    const vaultInt = document.getElementById('lp-vault-int');
-    const vaultDec = document.getElementById('lp-vault-dec');
-    const vaultDelta = document.getElementById('lp-vault-delta');
-    setTimeout(() => {
-      animateNum(vaultInt, vaultDec, 20.21, 1800);
-      // Live tick of the meter, simulating zł/h drift
-      let base = 20.21;
-      setInterval(() => {
-        base += (Math.random() - 0.45) * 0.06;
-        if (base < 18.5) base = 18.5;
-        if (base > 22.0) base = 22.0;
-        const ci = Math.floor(base);
-        const cd = Math.round((base - ci) * 100);
-        if (vaultInt) vaultInt.textContent = String(ci);
-        if (vaultDec) vaultDec.textContent = String(cd).padStart(2,'0');
-      }, 1400);
-    }, 250);
-
-    // Behaviour vault counter — when scrolled into view
-    const behInt = document.getElementById('lp-beh-int');
-    const behDec = document.getElementById('lp-beh-dec');
-    const behObserver = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          animateNum(behInt, behDec, 8728.99, 1800);
-          behObserver.disconnect();
-        }
-      });
-    }, { threshold: 0.4 });
-    if (behInt) behObserver.observe(behInt.parentElement);
-
-    // ─── Reveal-on-scroll ───
-    const reveals = document.querySelectorAll('.lp-reveal');
-    const ro = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          e.target.classList.add('in');
-          ro.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.15 });
-    reveals.forEach((r) => ro.observe(r));
-
-    // ─── Import row "AI tagging" sequence ───
-    const rowsEl = document.getElementById('lp-rows');
-    if (rowsEl) {
-      const taggingRows = rowsEl.querySelectorAll('.row.tagging');
-      const importObserver = new IntersectionObserver((entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            taggingRows.forEach((r, i) => {
-              const target = r.getAttribute('data-target');
-              setTimeout(() => {
-                const cat = r.querySelector('.cat');
-                cat.textContent = target;
-                cat.classList.add('tag');
-              }, 600 + i * 380);
-            });
-            importObserver.disconnect();
-          }
-        });
-      }, { threshold: 0.25 });
-      importObserver.observe(rowsEl);
-    }
-
-    // ─── Platforms mock theme toggle (light/dark preview) ───
-    const mockCanvas = document.getElementById('lp-platform-canvas');
-    if (mockCanvas) {
-      const btns = mockCanvas.querySelectorAll('.lp-mock-toggle button');
-      btns.forEach((b) => b.addEventListener('click', () => {
-        const mode = b.getAttribute('data-mock');
-        mockCanvas.setAttribute('data-mock-theme', mode);
-        btns.forEach((x) => x.classList.toggle('is-on', x === b));
-      }));
-    }
-
-    // ─── Agent terminal transcript (typewriter-ish) ───
-    const termBody = document.getElementById('lp-term-body');
-    const transcript = [
-      { role: 'user', tag: 'Bartek', text: 'Wrzuć wyciąg z Millennium za maj. Skategoryzuj i zaimportuj.' },
-      { role: 'agent', tag: 'agent →', text: 'Czytam plik · <span class="k">POST /api/agent/import/preview</span>' },
-      { role: 'tool', tag: 'tool', text: '<span class="k">{ </span><span class="v">"accountId"</span><span class="k">: </span><span class="v">"acc-mil-4421"</span><span class="k">, </span><span class="v">"text"</span><span class="k">: </span><span class="v">"&lt;csv&gt;"</span><span class="k"> }</span>' },
-      { role: 'result', tag: 'wynik', text: '28 wierszy · 0 duplikatów · 1 wymaga kategorii · wykryto przelew oszczędnościowy no-spend.' },
-      { role: 'agent', tag: 'agent →', text: 'Uzupełniam brakującą i&nbsp;commituję · <span class="k">POST /api/agent/import/commit</span>' },
-      { role: 'result', tag: 'wynik', text: '✓ Zaimportowano <b>27</b> · pominięto <b>1</b> duplikat · batch <span class="mono">imp-1778390000…</span>' },
-      { role: 'user', tag: 'Bartek', text: 'Jak idzie maj? Jestem przed czy za planem?' },
-      { role: 'agent', tag: 'agent →', text: 'Czytam pulpit · <span class="k">GET /api/agent/summary</span>' },
-      { role: 'result', tag: 'wynik', text: '<b>Przed planem</b> · zostało 8&nbsp;728,99&nbsp;zł · trend 7&nbsp;dni: poprawa · luz +1&nbsp;206&nbsp;zł.' },
-      { role: 'user', tag: 'Bartek', text: 'Dodaj wczorajszy lunch — Mango, 38 zł, restauracje.' },
-      { role: 'agent', tag: 'agent →', text: 'Dodaję transakcję · <span class="k">POST /api/agent/transactions</span><span class="lp-term-cursor"></span>' }
-    ];
-
-    function renderTranscript() {
-      if (!termBody) return;
-      termBody.innerHTML = '';
-      let delay = 250;
-      transcript.forEach((line, i) => {
-        const el = document.createElement('div');
-        el.className = 'lp-term-line role-' + line.role;
-        el.style.animationDelay = (delay) + 'ms';
-        el.innerHTML = `<span class="lp-term-tag">${line.tag}</span><span class="lp-term-text">${line.text}</span>`;
-        termBody.appendChild(el);
-        delay += 700;
-      });
-    }
-    const termObserver = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          renderTranscript();
-          termObserver.disconnect();
-        }
-      });
-    }, { threshold: 0.2 });
-    if (termBody) termObserver.observe(termBody);
-
-  })();
-  </script>
+  <div class="grain" aria-hidden="true"></div>
 </body>
 </html>

@@ -1,14 +1,14 @@
 # BR-Budget landing
 
-Static landing page for BR-Budget, based on the Claude Design handoff `BR-Budget Landing Page v2.html`.
+Static landing page for BR-Budget (paper & ink editorial, GSAP + Three.js z CDN).
+Źródło prawdy: `br-budget/public/landing/` w repo aplikacji — ten katalog to
+lustro deployowane na Cloudflare Pages (przy aktualizacji kopiujemy pliki stamtąd).
 
 Production:
 - https://budget.bartoszrychlicki.com
 
-App routes:
-- `/register` redirects to the BR-Budget app registration route.
-- `/login` redirects to the BR-Budget app login route.
-- `/app` redirects to the protected BR-Budget app.
+App routes (`_redirects` zostawia je aplikacji BR-Budget):
+- `/register`, `/login`, `/app`.
 
 ## Local preview
 
@@ -16,7 +16,7 @@ App routes:
 python3 -m http.server 4173
 ```
 
-Open http://127.0.0.1:4173.
+Open http://127.0.0.1:4173. (Assety ładują się z `/landing/...`, więc serwuj cały katalog.)
 
 ## Deploy
 
