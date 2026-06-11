@@ -465,6 +465,35 @@ function initNarrative() {
     scrollTrigger: { trigger: ".finale", start: "top 55%" },
   });
 
+  /* gallery: staggered reveal + multi-speed parallax */
+  const gallerySpeeds = [-10, -16, -7, -13, -9];
+  gsap.utils.toArray(".g-item").forEach((item, i) => {
+    gsap.from(item, {
+      y: 64,
+      autoAlpha: 0,
+      duration: 0.9,
+      ease: "power3.out",
+      scrollTrigger: { trigger: item, start: "top 86%" },
+    });
+    gsap.to(item, {
+      yPercent: gallerySpeeds[i % gallerySpeeds.length],
+      ease: "none",
+      scrollTrigger: {
+        trigger: item,
+        start: "top bottom",
+        end: "bottom top",
+        scrub: 0.8,
+      },
+    });
+  });
+  gsap.from(".gallery-head .eyebrow", {
+    y: 16,
+    autoAlpha: 0,
+    duration: 0.7,
+    ease: "power3.out",
+    scrollTrigger: { trigger: ".gallery-head", start: "top 82%" },
+  });
+
   /* chapter rail */
   const railLinks = document.querySelectorAll(".rail a");
   ScrollTrigger.create({
