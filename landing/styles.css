@@ -23,6 +23,8 @@
   --sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --gutter: clamp(1.25rem, 5vw, 5rem);
+  --shell-max: 86rem;
+  --shell-pad: max(var(--gutter), calc(50vw - var(--shell-max) / 2));
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -960,3 +962,15 @@ a { color: inherit; }
 }
 .site-footer a { color: var(--ink-3); }
 .footer-nerd code { font-size: 1em; }
+
+/* ── wide screens: cap the content shell, keep backgrounds full-bleed ── */
+.site-header,
+.hero,
+.chapter,
+.gallery,
+.finale,
+.site-footer {
+  padding-left: var(--shell-pad);
+  padding-right: var(--shell-pad);
+}
+.scroll-cue { right: var(--shell-pad); }
