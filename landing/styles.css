@@ -855,18 +855,40 @@ a { color: inherit; }
 .g-3 { grid-column: 1 / 6; margin-top: 2rem; }
 .g-4 { grid-column: 6 / 13; margin-top: 6rem; }
 .g-5 { grid-column: 3 / 11; margin-top: 3rem; }
+.g-item { position: relative; }
 .g-shot {
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 0.9rem;
   overflow: hidden;
   box-shadow: 0 30px 70px -34px rgba(14, 14, 12, 0.45);
+  transform: rotate(var(--tilt, 0deg));
 }
-.g-1 .g-shot { transform: rotate(-0.8deg); }
-.g-2 .g-shot { transform: rotate(0.9deg); }
-.g-3 .g-shot { transform: rotate(0.5deg); }
-.g-4 .g-shot { transform: rotate(-0.6deg); }
-.g-5 .g-shot { transform: rotate(0.3deg); }
+.g-1 .g-shot { --tilt: -0.8deg; }
+.g-2 .g-shot { --tilt: 0.9deg; }
+.g-3 .g-shot { --tilt: 0.5deg; }
+.g-4 .g-shot { --tilt: -0.6deg; }
+.g-5 .g-shot { --tilt: 0.3deg; }
+
+/* hover focus: powiększ najechany, zrób miejsce kosztem reszty */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .g-shot {
+    transition:
+      transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1),
+      box-shadow 0.55s ease,
+      opacity 0.4s ease;
+    will-change: transform;
+  }
+  .g-item:hover { z-index: 6; }
+  .g-item:hover .g-shot {
+    transform: rotate(0deg) scale(1.22);
+    box-shadow: 0 48px 110px -40px rgba(14, 14, 12, 0.6);
+  }
+  .g-grid:has(.g-item:hover) .g-item:not(:hover) .g-shot {
+    transform: rotate(var(--tilt, 0deg)) scale(0.9);
+    opacity: 0.7;
+  }
+}
 .g-shot img { display: block; width: 100%; height: auto; }
 .g-shot figcaption {
   display: flex;
